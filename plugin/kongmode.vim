@@ -41,7 +41,12 @@ module Kong
                     '^.\{-}\zs\[\zs.*\ze\]'
                   when 'm'
                     Ev.CycleUppercaseMarks(direction == 'b' ? -1 : 1)
-                    match_id = Ev.matchadd 'VISUAL', '\\%.l.*'
+                    match_id = Ev.matchadd 'VISUAL', '\%.l.*'.sq
+                    mark = Var["g:current_mark"]
+                    Ev.sign_unplace "marknames"
+                    Ex.hi "RedText ctermbg=1 ctermfg=235 cterm=reverse guibg=#262626 guifg=#8787af gui=reverse"
+                    Ev.sign_define("markname-#{mark}", { text: mark, texthl: "RedText", linehl: "RedText" })
+                    Ev.sign_place(mark.ord, 'marknames', "markname-#{mark}", Ev.bufnr, {lnum: Ev.line('.'), priority: 99})
                     throw early
                   end
           match_pattern = '\\%.l' + query
@@ -93,6 +98,8 @@ module Kong
         Ex.startinsert!
       end
     end
+
+    Ev.sign_unplace "marknames"
   end
 
   def self.kong_mode

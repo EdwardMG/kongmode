@@ -28,7 +28,7 @@ module Kong
                   when 'q'
                     '\v^.{-}[\'"]\zs.{-}\ze[\'"]'
                   when 'd'
-                    '^\s*\zsdef\>'
+                    '^\s*def\> \zs.*\ze'
                   when 't'
                     '^\s*test\> "\zs.*\ze"'
                   when 'i'
@@ -79,7 +79,7 @@ module Kong
         Ex.normal "dt]"
         Ex.startinsert
       when 'd'
-        Ex.normal "wde"
+        Ex.s '/^\s*def\> \zs.*\ze//'.sq
         Ex.startinsert!
       when 't'
         Ex.s '/^\s*test\> "\zs.*\ze"//'

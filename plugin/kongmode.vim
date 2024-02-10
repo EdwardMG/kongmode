@@ -30,7 +30,7 @@ module Kong
                   when 'd'
                     '^\s*def\> \zs.*\ze'
                   when 't'
-                    '^\s*test\> "\zs.*\ze"'
+                    '^\s*test\> [\'"]\zs.*\ze[\'"]'
                   when 'i'
                     '\v^[^#A-Z]*\zs[A-Z][A-z:]*\ze'
                   when 'o'
@@ -82,8 +82,8 @@ module Kong
         Ex.s '/^\s*def\> \zs.*\ze//'.sq
         Ex.startinsert!
       when 't'
-        Ex.s '/^\s*test\> "\zs.*\ze"//'
-        Ex.normal '0f"l'
+        Ex.s '/^\s*test\> [\'"]\zs.*\ze[\'"]//'.sq
+        Ev.search '\v^.{-}[\'"]\zs'.sq
         Ex.startinsert
       when 'o'
         Ex.normal "wde"

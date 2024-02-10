@@ -26,17 +26,17 @@ module Kong
 
           query = case Var["g:kong_submode"]
                   when 'q'
-                    '\v^.{-}\\zs[\'\'"].*[\'\'"]'
+                    '\v^.{-}\zs[\'"].*[\'"]'
                   when 'd'
-                    '^\\s*\\zsdef\\>'
+                    '^\s*\zsdef\>'
                   when 'i'
-                    '\v^[^#A-Z]*\\zs[A-Z][A-z:]*\\ze'
+                    '\v^[^#A-Z]*\zs[A-Z][A-z:]*\ze'
                   when 'o'
                     '\v^\s*(class|module)'
                   when 'b'
-                    '^.\\{-}\\zs(\\zs.*\\ze)'
+                    '^.\{-}\zs(\zs.*\ze)'
                   when '['
-                    '^.\\{-}\\zs\[\\zs.*\\ze\]'
+                    '^.\{-}\zs\[\zs.*\ze\]'
                   when 'm'
                     Ev.CycleUppercaseMarks(direction == 'b' ? -1 : 1)
                     match_id = Ev.matchadd 'VISUAL', '\\%.l.*'
@@ -44,9 +44,9 @@ module Kong
                   end
           match_pattern = '\\%.l' + query
 
-          Ev.search query, direction
+          Ev.search query.sq, direction
           col = Ev.col('.')
-          match_id = Ev.matchadd 'VISUAL', match_pattern
+          match_id = Ev.matchadd 'VISUAL', match_pattern.sq
         end
       when 'q', 'd', 'b', 'i', 'm', '[', 'o'
         Var["g:kong_submode"] = c

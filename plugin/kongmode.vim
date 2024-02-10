@@ -36,9 +36,9 @@ module Kong
                   when 'o'
                     '\v^\s*(class|module)'
                   when 'b'
-                    '^.\{-}\zs(\zs.*\ze)'
+                    '^.\{-}(\zs.*\ze)'
                   when '['
-                    '^.\{-}\zs\[\zs.*\ze\]'
+                    '^.\{-}\[\zs.*\ze\]'
                   when 'm'
                     Ev.CycleUppercaseMarks(direction == 'b' ? -1 : 1)
                     match_id = Ev.matchadd 'VISUAL', '\%.l.*'.sq

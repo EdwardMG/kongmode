@@ -26,9 +26,11 @@ module Kong
 
           query = case Var["g:kong_submode"]
                   when 'q'
-                    '\v^.{-}\zs[\'"].*[\'"]'
+                    '\v^.{-}[\'"]\zs.{-}\ze[\'"]'
                   when 'd'
                     '^\s*\zsdef\>'
+                  when 't'
+                    '^\s*test\> "\zs.*\ze"'
                   when 'i'
                     '\v^[^#A-Z]*\zs[A-Z][A-z:]*\ze'
                   when 'o'
@@ -48,7 +50,7 @@ module Kong
           col = Ev.col('.')
           match_id = Ev.matchadd 'VISUAL', match_pattern.sq
         end
-      when 'q', 'd', 'b', 'i', 'm', '[', 'o'
+      when 'q', 'd', 'b', 'i', 'm', '[', 'o', 't'
         Var["g:kong_submode"] = c
         c = 'j'
         display_mode
@@ -67,8 +69,8 @@ module Kong
     when 'c'
       case Var["g:kong_submode"]
       when 'q'
-        Ex.normal "'"
-        Ex.normal 'dt"'
+        Ex.s '/\v^.{-}[\'"]\zs.{-}\ze[\'"]//'.sq
+        Ev.search '\v^.{-}[\'"]\zs'.sq
         Ex.startinsert
       when 'b'
         Ex.normal "ldt)"
@@ -79,6 +81,10 @@ module Kong
       when 'd'
         Ex.normal "wde"
         Ex.startinsert!
+      when 't'
+        Ex.s '/^\s*test\> "\zs.*\ze"//'
+        Ex.normal '0f"l'
+        Ex.startinsert
       when 'o'
         Ex.normal "wde"
         Ex.startinsert!

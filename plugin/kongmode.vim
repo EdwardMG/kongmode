@@ -68,6 +68,8 @@ module Kong
                       Ex.normal! "#{item['nr']}gg"
                     end
 
+                    Ex.normal! "zz"
+
                     match_id = Ev.matchadd 'VISUAL', '\%.l.*'.sq
                     throw early
                   end

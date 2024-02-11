@@ -2,11 +2,14 @@ pa rubywrapper
 
 fu! s:KongModeSetup()
 ruby << KONG
+$kong_info = ""
+$nyao_box_index = 0
+
 module Kong
   def self.display_mode
     Ex.redraw
     Ex.echohl 'Todo'
-    Ex.echon '"-- KONG MODE '+Var['g:kong_submode']+' --"'
+    Ex.echon '"-- KONG MODE '+Var['g:kong_submode']+' --'+$kong_info.to_s+'"'
     Ex.echohl 'None'
   end
 
@@ -48,6 +51,25 @@ module Kong
                     Ev.sign_define("markname-#{mark}", { text: mark, texthl: "RedText", linehl: "RedText" })
                     Ev.sign_place(mark.ord, 'marknames', "markname-#{mark}", Ev.bufnr, {lnum: Ev.line('.'), priority: 99})
                     throw early
+                  when 'n'
+                    $nyao_box_index += (direction == 'b' ? -1 : 1)
+
+                    if $nyao_box_index > NyaoBoxes.current_box.length - 1
+                      $nyao_box_index = 0
+                    elsif $nyao_box_index < 0
+                      $nyao_box_index = NyaoBoxes.current_box.length - 1
+                    end
+
+                    item = NyaoBoxes.current_box[$nyao_box_index]
+
+                    Ex.edit item["fname"]
+                    Ex.normal! 'zR'
+                    unless (Ev.search ('\M'+item["line"]).sq) > 0
+                      Ex.normal! "#{item['nr']}gg"
+                    end
+
+                    match_id = Ev.matchadd 'VISUAL', '\%.l.*'.sq
+                    throw early
                   end
           match_pattern = '\\%.l' + query
 
@@ -55,7 +77,7 @@ module Kong
           col = Ev.col('.')
           match_id = Ev.matchadd 'VISUAL', match_pattern.sq
         end
-      when 'q', 'd', 'b', 'i', 'm', '[', 'o', 't'
+      when 'q', 'd', 'b', 'i', 'm', '[', 'o', 't', 'n'
         Var["g:kong_submode"] = c
         c = 'j'
         display_mode

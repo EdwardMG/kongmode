@@ -2,6 +2,20 @@ pa rubywrapper
 
 fu! s:KongModeSetup()
 ruby << KONG
+# Stages to add a binding
+
+  # Stage 1: amend `case Var["g:kong_submode"]` switch
+  # Stage 2: amend `when 'q', 'd', 'b', 'i', 'm', '[', 'o', 't', 'n'`
+  # Stage 3: amend `case Var["g:kong_submode"]` switch
+
+  # Stage 1 decides what j and k do
+  # Stage 2 assigns changing modes to influence what Stage 1 does
+  # Stage 3 assigns behaviour of `change` c hotkey on match
+
+# These stages could be refactored to be represented by a class, a hash
+# or some other contrivance, but to little benefit at time of writing. The
+# most time effective option is simply to record this guide here.
+
 $kong_info = ""
 $nyao_box_index = 0
 
@@ -27,6 +41,7 @@ module Kong
         catch do |early|
           direction = c == 'j' ? '' : 'b'
 
+          # Stage 1
           query = case Var["g:kong_submode"]
                   when 'q'
                     '\v^.{-}[\'"]\zs.{-}\ze[\'"]'
@@ -79,6 +94,7 @@ module Kong
           col = Ev.col('.')
           match_id = Ev.matchadd 'VISUAL', match_pattern.sq
         end
+      # Stage 2
       when 'q', 'd', 'b', 'i', 'm', '[', 'o', 't', 'n'
         Var["g:kong_submode"] = c
         c = 'j'
@@ -96,6 +112,7 @@ module Kong
     Ex.redraw!
     case c
     when 'c'
+      # Stage 2
       case Var["g:kong_submode"]
       when 'q'
         Ex.s '/\v^.{-}[\'"]\zs.{-}\ze[\'"]//'.sq

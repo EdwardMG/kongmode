@@ -91,6 +91,7 @@ module Kong
           match_pattern = '\\%.l' + query
 
           Ev.search query.sq, direction
+          Ex.normal! "zz"
           col = Ev.col('.')
           match_id = Ev.matchadd 'VISUAL', match_pattern.sq
         end

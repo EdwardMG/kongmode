@@ -33,6 +33,7 @@ module Kong
     col = 1
 
     $cycle_classes = CycleClasses.new
+    $cycle_defs = CycleDefs.new
 
     while c != '	'
       # Ev.matchdelete(match_id) if match_id
@@ -43,12 +44,19 @@ module Kong
         catch do |early|
           direction = c == 'j' ? '' : 'b'
 
+          Ev.popup_close( $cycle_classes_popid ) if $cycle_classes_popid
+          Ev.popup_close( $cycle_defs_popid ) if $cycle_defs_popid
+
           # Stage 1
           query = case Var["g:kong_submode"]
                   when 'q'
                     '\v^.{-}[\'"]\zs.{-}\ze[\'"]'
                   when 'd'
-                    '^\s*def\> \zs.*\ze'
+                    # '^\s*def\> \zs.*\ze'
+                    # match_id = Ev.matchadd 'VISUAL', '\\%.l' + '^\s*def\> \zs.*\ze'.sq
+                    $cycle_defs.cycle(c == 'j' ? 1 : -1)
+                    match_id = Ev.matchadd 'VISUAL', '\%.l.*'.sq
+                    throw early
                   when 't'
                     '^\s*test\> [\'"]\zs.*\ze[\'"]'
                   when 'i'
@@ -102,6 +110,8 @@ module Kong
         end
       # Stage 2
       when 'q', 'd', 'b', 'i', 'm', '[', 'o', 't', 'n'
+        $cycle_classes.reload
+        $cycle_defs.reload
         Var["g:kong_submode"] = c
         c = 'j'
         display_mode
@@ -148,6 +158,7 @@ module Kong
 
     Ev.sign_unplace "marknames"
     Ev.popup_close( $cycle_classes_popid ) if $cycle_classes_popid
+    Ev.popup_close( $cycle_defs_popid ) if $cycle_defs_popid
   end
 
   def self.kong_mode
@@ -172,14 +183,77 @@ module Kong
     def surround(i) = range(i, i)
   end
 
-  class CycleClasses
-    attr_accessor :ring
+  class CycleDefs
+    attr_accessor :ring, :current_file
 
     Location = Struct.new :lnum, :fname, :content, :name
 
     def initialize
-      current_file = Ev.expand("'%'")
-      current_lnum = Ev.line("'.'")
+      reload
+    end
+
+    def reload
+      @current_file = Ev.expand("%")
+      lnum          = Ev.line('.')
+      lines         = []
+
+      File
+        .readlines(@current_file)
+        .each_with_index do |l, i|
+          if l.match? /^\s*(function|def)\s/
+            lines << Location.new(i+1, @current_file, l, l.match(/^\s*(function|def)\s([A-z0-9_\.]*)/)[2])
+          end
+        end
+
+      @ring = Ring.new(lines)
+
+      distance = 99999
+      @ring.each_with_index do |l, i|
+        new_distance = (lnum - l.lnum).abs
+
+        if new_distance < distance
+          @ring.current_index = i - 1
+          distance = new_distance
+        end
+      end
+    end
+
+    def cycle dir
+      reload if @current_file != Ev.expand("%")
+
+      dir == 1 ? @ring.next : @ring.prev
+
+      Ex.normal! "#{@ring.current.lnum}ggzz"
+
+      Ev.popup_close( $cycle_defs_popid ) if $cycle_defs_popid
+      $cycle_defs_popid = Ev.popup_create(
+        @ring.map.with_index do |l, j|
+          @ring.normalized_index == j ? "> #{l.name}" : "  #{l.name}"
+        end,
+        {
+          title: '',
+          padding: [1,1,1,1],
+          line: 1,
+          col: Var['&columns'] - 23,
+          pos: 'topright',
+          scrollbar: 1
+        }
+      )
+    end
+  end
+
+  class CycleClasses
+    attr_accessor :ring, :current_file
+
+    Location = Struct.new :lnum, :fname, :content, :name
+
+    def initialize
+      reload
+    end
+
+    def reload
+      @current_file = Ev.expand("%")
+      current_lnum = Ev.line(".")
       lines        = []
 
       Ev.getbufinfo.map { _1['name'] }.select { _1.match? /(\.rb|\.vim)$/ }.each do |f|
@@ -192,11 +266,11 @@ module Kong
           end
       end
       lines = lines.sort {|a,b|
-        if a.fname.match?(current_file) && b.fname.match?(current_file)
+        if a.fname.match?(@current_file) && b.fname.match?(@current_file)
           a.lnum <=> b.lnum
-        elsif a.fname.match?(current_file)
+        elsif a.fname.match?(@current_file)
           -1
-        elsif b.fname.match?(current_file)
+        elsif b.fname.match?(@current_file)
           1
         else
           if a.fname == b.fname
@@ -210,31 +284,29 @@ module Kong
       @ring = Ring.new(lines)
 
       distance = 99999
-      ring.each_with_index do |l, i|
+      @ring.each_with_index do |l, i|
         new_distance = (current_lnum - l.lnum).abs
 
-        if l.fname == current_file && new_distance < distance
-          @ring.current_index = i
+        if l.fname == @current_file && new_distance < distance
+          @ring.current_index = i - 1
           distance = new_distance
         end
       end
     end
 
     def cycle dir
+      # @current_file is nil
+      reload if current_file != Ev.expand("%")
 
-      if dir == 1
-        @ring.next
-      else
-        @ring.prev
-      end
+      dir == 1 ? @ring.next : @ring.prev
 
-      Ex.edit ring.current.fname
-      Ex.normal! "#{ring.current.lnum}ggzz"
+      Ex.edit @ring.current.fname
+      Ex.normal! "#{@ring.current.lnum}ggzz"
 
       Ev.popup_close( $cycle_classes_popid ) if $cycle_classes_popid
       $cycle_classes_popid = Ev.popup_create(
-        ring.map.with_index do |l, j|
-          ring.normalized_index == j ? "> #{l.name}" : l.name
+        @ring.map.with_index do |l, j|
+          @ring.normalized_index == j ? "> #{l.name}" : "  #{l.name}"
         end,
         {
           title: '',

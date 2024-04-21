@@ -248,40 +248,44 @@ module Kong
     Location = Struct.new :lnum, :fname, :content, :name
 
     def initialize
-      reload
+      reload true
     end
 
-    def reload
+    def reload hard=false
       @current_file = Ev.expand("%")
       current_lnum = Ev.line(".")
-      lines        = []
 
-      Ev.getbufinfo.map { _1['name'] }.select { _1.match? /(\.rb|\.vim)$/ }.each do |f|
-        File
-          .readlines(f)
-          .each_with_index do |l, i|
-            if l.match? /^\s*(class|module)\s/
-              lines << Location.new(i+1, f, l, l.match(/^\s*(class|module)\s([A-z0-9_]*)/)[2])
+      # if not hard, we are just moving between modes
+      if hard
+        lines = []
+
+        Ev.getbufinfo.map { _1['name'] }.select { _1.match? /(\.rb|\.vim)$/ }.each do |f|
+          File
+            .readlines(f)
+            .each_with_index do |l, i|
+              if l.match? /^\s*(class|module)\s/
+                lines << Location.new(i+1, f, l, l.match(/^\s*(class|module)\s([A-z0-9_]*)/)[2])
+              end
+            end
+        end
+
+        lines = lines.sort {|a,b|
+          if a.fname.match?(@current_file) && b.fname.match?(@current_file)
+            a.lnum <=> b.lnum
+          elsif a.fname.match?(@current_file)
+            -1
+          elsif b.fname.match?(@current_file)
+            1
+          else
+            if a.fname == b.fname
+              a.lnum <=> b.lnum
+            else
+              a.fname <=> b.fname
             end
           end
+        }
+        @ring = Ring.new(lines)
       end
-      lines = lines.sort {|a,b|
-        if a.fname.match?(@current_file) && b.fname.match?(@current_file)
-          a.lnum <=> b.lnum
-        elsif a.fname.match?(@current_file)
-          -1
-        elsif b.fname.match?(@current_file)
-          1
-        else
-          if a.fname == b.fname
-            a.lnum <=> b.lnum
-          else
-            a.fname <=> b.fname
-          end
-        end
-      }
-
-      @ring = Ring.new(lines)
 
       distance = 99999
       @ring.each_with_index do |l, i|
@@ -295,8 +299,10 @@ module Kong
     end
 
     def cycle dir
-      # @current_file is nil
-      reload if current_file != Ev.expand("%")
+      if current_file != Ev.expand("%")
+        reload
+        @ring.next
+      end
 
       dir == 1 ? @ring.next : @ring.prev
 

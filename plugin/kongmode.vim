@@ -149,10 +149,10 @@ module Kong
     feedkey
   end
 end
-
-Var["g:kong_submode"] = 'd'
 KONG
 endfu
+
+let g:kong_submode = 'd'
 
 call s:KongModeSetup()
 

@@ -125,6 +125,7 @@ module Kong
     end
 
     Ev.clearmatches
+    # needed to remove statusline on exit
     Ex.redraw!
     case c
     when 'c'
@@ -179,8 +180,32 @@ module Kong
     def next             = tap { @current_index += 1 }
     def prev             = tap { @current_index -= 1 }
 
-    def range(u, b) = self[ @current_index-u..@current_index ].concat(self[@current_index+1..@current_index+b])
-    def surround(i) = range(i, i)
+    def surround(n)
+      r = Ring.new([])
+      mask = self.to_a.map { false }
+      p = normalized_index
+      off = p+n+1 - length
+      i = p - n
+      left_exceeded = false
+      i = i - off if off > 0
+      e = p + n + 1
+      if i < 0
+        e = e + i.abs
+        r.current_index = normalized_index
+        i = 0
+      else
+        r.current_index = normalized_index - i
+      end
+      e = length if e >= length
+      while i < e
+        mask[i] = true
+        i+=1
+      end
+      mask.each_with_index do |b, i|
+        r << self[i] if b
+      end
+      r
+    end
   end
 
   class CycleDefs
@@ -226,9 +251,11 @@ module Kong
       Ex.normal! "#{@ring.current.lnum}ggzz"
 
       Ev.popup_close( $cycle_defs_popid ) if $cycle_defs_popid
+
+      window = @ring.surround(20)
       $cycle_defs_popid = Ev.popup_create(
-        @ring.map.with_index do |l, j|
-          @ring.normalized_index == j ? "> #{l.name}" : "  #{l.name}"
+        window.map.with_index do |l, j|
+          window.normalized_index == j ? "> #{l.name}" : "  #{l.name}"
         end,
         {
           title: '',
